@@ -15,15 +15,18 @@ from connectorBehavior import *
 
 def derived_values(r_in, r_out, width, spoke_width):
     s_pt_whole = (0.0, r_out, width / 2)
-    s_pt_lateral = (0.0, r_out, width / 2)
+    # s_pt_lateral = (0.0, r_out, width / 2)
+    s_pt_load = (0.0, r_out, width / 2)
+    s_pt_bc = (0.0, -r_out, width / 2)
     s_pt_extr = (0.0, (r_in + r_out) / 2, width)
     s_pt_out_edge = (0.0, r_out, width)
+    s_pt_mesh_edge = (r_out, 0.0, width / 2)
     spoke_start = (r_out + r_in) / 2
     s_pts_spoke = [(-spoke_start + 0.01, spoke_width / 2),
                    (-spoke_start + 0.01, -spoke_width / 2),
                    (-spoke_start, 0),
                    (spoke_start, 0)]
-    return s_pt_whole, s_pt_lateral, s_pt_extr, s_pt_out_edge, spoke_start, s_pts_spoke
+    return s_pt_whole, s_pt_load, s_pt_bc, s_pt_extr, s_pt_out_edge, spoke_start, s_pts_spoke, s_pt_mesh_edge
 
 
 def init_part(mymodel, r_out, r_in, width, part_name):
@@ -76,29 +79,48 @@ def make_assembly(mymodel, mypart, assembly_name):
     return myassembly
 
 
-def make_mesh(mypart, meshsize, s_pt_whole, r_out, width):
-    mypart.seedPart(deviationFactor=0.1, minSizeFactor=0.1, size=meshsize)
+def make_mesh(mypart, meshsize, z_density, s_pt_whole, s_pt_mesh_edge, r_out, width):
+    # mypart.seedPart(deviationFactor=0.1, minSizeFactor=0.1, size=meshsize)
+    # mypart.setMeshControls(elemShape=TET, regions=mypart.cells.findAt((s_pt_whole,), ), technique=FREE)
+    # mypart.setElementType(elemTypes=(ElemType(elemCode=C3D8R, elemLibrary=STANDARD),
+    #                                  ElemType(elemCode=C3D6, elemLibrary=STANDARD),
+    #                                  ElemType(elemCode=C3D4, elemLibrary=STANDARD,
+    #                                           secondOrderAccuracy=OFF, distortionControl=DEFAULT)),
+    #                       regions=(mypart.cells.findAt(((0.0, r_out, width / 2),), ),))
+    # mypart.generateMesh()
     mypart.setMeshControls(elemShape=TET, regions=mypart.cells.findAt((s_pt_whole,), ), technique=FREE)
     mypart.setElementType(elemTypes=(ElemType(elemCode=C3D8R, elemLibrary=STANDARD),
                                      ElemType(elemCode=C3D6, elemLibrary=STANDARD),
                                      ElemType(elemCode=C3D4, elemLibrary=STANDARD,
                                               secondOrderAccuracy=OFF, distortionControl=DEFAULT)),
                           regions=(mypart.cells.findAt(((0.0, r_out, width / 2),), ),))
+    mypart.PartitionCellByPlaneThreePoints(cells=mypart.cells.findAt((s_pt_whole,), ),
+                                           point1=(0, 0, 0), point2=(1, 0, 0), point3=(1, 0, 1))
+    mypart.seedEdgeBySize(constraint=FINER, deviationFactor=0.1,
+                          edges=mypart.edges.findAt((s_pt_mesh_edge,), ), size=meshsize/z_density)
+    mypart.seedPart(deviationFactor=0.1, minSizeFactor=0.1, size=meshsize)
     mypart.generateMesh()
 
 
 def load_bc(mymodel, mypart, myassembly, step_name, load_name, bc_name,
-            r_out, width, r_depth, r_pressure, load, s_pt_lateral):
-    mypart.Set(faces=mypart.faces.findAt((s_pt_lateral,), ), name='face_big')
-    face_big = mypart.sets['face_big'].faces[0]
-    mypart.Set(nodes=face_big.getNodes(), name='face_nodes')
-    face_big_nodes = mypart.sets['face_nodes'].nodes
-    mypart.Set(nodes=face_big_nodes.getByBoundingCylinder(center1=(0.0, r_out - r_depth, width / 2),
-                                                          center2=(0.0, r_out + r_depth, width / 2),
-                                                          radius=r_pressure), name='nodes_load')
-    mypart.Set(nodes=face_big_nodes.getByBoundingCylinder(center1=(0.0, -(r_out - r_depth), width / 2),
-                                                          center2=(0.0, -(r_out + r_depth), width / 2),
-                                                          radius=r_pressure), name='nodes_bc')
+            r_out, width, r_depth, r_pressure, load, s_pt_load, s_pt_bc):
+    mypart.Set(faces=mypart.faces.findAt((s_pt_load,), ), name='face_load')
+    face_load = mypart.sets['face_load'].faces[0]
+    mypart.Set(nodes=face_load.getNodes(), name='face_load_nodes')
+    face_load_nodes = mypart.sets['face_load_nodes'].nodes
+    mypart.Set(nodes=face_load_nodes.getByBoundingCylinder(center1=(0.0, r_out - r_depth, width / 2),
+                                                           center2=(0.0, r_out + r_depth, width / 2),
+                                                           radius=r_pressure), name='nodes_load')
+    nodes_load = mypart.sets['nodes_load'].nodes
+
+    mypart.Set(faces=mypart.faces.findAt((s_pt_bc,), ), name='face_bc')
+    face_bc = mypart.sets['face_bc'].faces[0]
+    mypart.Set(nodes=face_bc.getNodes(), name='face_bc_nodes')
+    face_bc_nodes = mypart.sets['face_bc_nodes'].nodes
+    mypart.Set(nodes=face_bc_nodes.getByBoundingCylinder(center1=(0.0, -(r_out - r_depth), width / 2),
+                                                         center2=(0.0, -(r_out + r_depth), width / 2),
+                                                         radius=r_pressure), name='nodes_bc')
+    nodes_bc = mypart.sets['nodes_bc'].nodes
     num_nodes_load = len(mypart.sets['nodes_load'].nodes)
     mymodel.ConcentratedForce(cf2=-load / num_nodes_load, createStepName=step_name,
                               distributionType=UNIFORM, field='', localCsys=None, name=load_name,

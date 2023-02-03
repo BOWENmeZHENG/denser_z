@@ -17,14 +17,14 @@ r_out = 0.3
 r_in = 0.2
 width = 0.1
 spoke_width = 0.04
-num_spokes = 5
+num_spokes = 4
 meshsize = 0.02
 r_depth = 0.02
 r_pressure = 0.1
 E = 1e8
 mu = 0.3
 load = 10000
-init_angle = 20
+init_angle = 0
 results_location = 'C:/Users/bowen/Desktop/'
 
 # Names

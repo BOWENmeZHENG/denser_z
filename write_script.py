@@ -1,5 +1,5 @@
 def write_pymodel(r_out=0.3, r_in=0.2, width=0.1, spoke_width=0.04, num_spokes=3, init_angle=0,
-                  E=1e8, mu=0.3, load=10000, meshsize=0.03, z_density=2, r_depth=0.02, r_pressure=0.1,
+                  E=1e8, mu=0.3, load=10000, meshsize=0.03, z_density=3, r_depth=0.02, r_pressure=0.1,
                   results_location='C:/Users/bowen/Desktop/abaqus_python/denser_z/',
                   part_name='wheel', material_name='wheel_material', section_name='wheel_section',
                   assembly_name='wheel-assembly', step_name='static_load', load_name='compression',

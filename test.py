@@ -2,7 +2,7 @@ import automate
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data = pd.read_csv('2023-02-03_num_2_seed_45_5_vars/ro_0.216_ri_0.185_w_0.124_sw_0.025_n_4_E_10000000000.0_l_10000.0_rot_0.0_nodes.csv')
+data = pd.read_csv('2023-02-03_num_200_z_2_seed_45_5_vars/ro_0.230_ri_0.186_w_0.139_sw_0.024_n_3_E_10000000000.0_l_10000.0_rot_0.0_nodes.csv')
 data_ex = data[data.nodetype==1]
 data_in = data[data.nodetype==0]
 x, y, z = data_ex.x, data_ex.y, data_ex.z
